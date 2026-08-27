@@ -2,8 +2,11 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api/env.dart';
+import 'dart:io';
 import '../../features/auth/providers/auth_state_provider.dart';
+import '../../features/auth/repositories/profile_repository.dart';
 import '../../features/auth/screens/login_screen.dart';
+import '../../features/onboarding/models/onboarding_enums.dart';
 import '../../features/onboarding/models/onboarding_options.dart';
 import '../../features/onboarding/models/onboarding_step.dart';
 import '../../features/onboarding/providers/onboarding_draft_controller.dart';
@@ -51,13 +54,25 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (BuildContext context, GoRouterState state) {
       final AuthStatus status = authNotifier.status;
       final String location = state.matchedLocation;
-      if (location == RoutePaths.splash) {
-        if (status == AuthStatus.authenticated) return RoutePaths.home;
-        return null;
-      }
 
+      final bool onSplash = location == RoutePaths.splash;
       final bool onLogin = location == RoutePaths.login;
       final bool onOnboarding = location.startsWith('/onboarding');
+      final bool onAwaiting = location == RoutePaths.awaitingReview;
+
+      // Splash is a tap-to-continue gate ONLY for a fresh install with
+      // no session yet. Once the user has any status, splash must
+      // forward them to their proper destination — otherwise a deep
+      // link back from Google OAuth cold-starts the app on splash and
+      // the user gets stuck.
+      if (onSplash) {
+        return switch (status) {
+          AuthStatus.unauthenticated => null,
+          AuthStatus.onboarding => RoutePaths.onboardingIntro,
+          AuthStatus.awaitingReview => RoutePaths.awaitingReview,
+          AuthStatus.authenticated => RoutePaths.home,
+        };
+      }
 
       if (status == AuthStatus.unauthenticated) {
         return onLogin ? null : RoutePaths.login;
@@ -69,11 +84,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         // While under review the user can't reach the tabbed app —
         // they're pinned on Awaiting Review and the nav bar isn't
         // rendered (MainShell only appears for authenticated users).
-        return location == RoutePaths.awaitingReview
-            ? null
-            : RoutePaths.awaitingReview;
+        return onAwaiting ? null : RoutePaths.awaitingReview;
       }
-      if (onLogin || onOnboarding || location == RoutePaths.awaitingReview) {
+      // Approved: bounce anyone on login/onboarding/review back to Home.
+      if (onLogin || onOnboarding || onAwaiting) {
         return RoutePaths.home;
       }
       return null;
@@ -99,21 +113,39 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.onboardingBasics,
         builder: (BuildContext context, __) => Consumer(
           builder: (context, ref, __) {
-            final controller = ref.read(onboardingDraftProvider.notifier);
             return BasicsScreen(
               onContinue: ({
                 required name,
                 required dateOfBirth,
                 required location,
                 required gender,
-              }) {
-                controller.updateBasics(
+              }) async {
+                final repo = ref.read(profileRepositoryProvider);
+                // Look up city + locality UUIDs from the shared name
+                // string the picker returned.
+                final String cityId = await repo.defaultCityId();
+                final localities = await repo.fetchLocalities();
+                final match = localities.firstWhere(
+                  (l) => l['name'] == location,
+                  orElse: () => localities.first,
+                );
+                await repo.updateBasics(
                   name: name,
                   dateOfBirth: dateOfBirth,
-                  location: location,
-                  gender: gender,
+                  gender: gender.name,   // Gender enum → 'male'|'female'|'other'
+                  cityId: cityId,
+                  localityId: match['id'] as String,
                 );
-                context.push(RoutePaths.onboardingProfilePicture);
+                // Keep the local draft in sync so downstream screens
+                // that still read from it show the right values.
+                ref.read(onboardingDraftProvider.notifier).updateBasics(
+                      name: name,
+                      dateOfBirth: dateOfBirth,
+                      location: location,
+                      gender: gender,
+                    );
+                ref.read(profileRefreshTriggerProvider.notifier).state++;
+                if (context.mounted) context.push(RoutePaths.onboardingProfilePicture);
               },
             );
           },
@@ -123,9 +155,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.onboardingProfilePicture,
         builder: (BuildContext context, __) => Consumer(
           builder: (context, ref, __) => ProfilePictureScreen(
-            onContinue: (String path) {
+            onContinue: (String path) async {
+              final repo = ref.read(profileRepositoryProvider);
+              final uid = ref.read(sessionProvider)!.user.id;
+              await repo.uploadPhoto(
+                file: File(path),
+                bucket: 'avatars',
+                purpose: 'avatar',
+                ownerType: 'profile',
+                ownerId: uid,
+              );
               ref.read(onboardingDraftProvider.notifier).setProfilePhoto(path);
-              context.push(RoutePaths.onboardingActivities);
+              ref.read(profileRefreshTriggerProvider.notifier).state++;
+              if (context.mounted) context.push(RoutePaths.onboardingActivities);
             },
           ),
         ),
@@ -141,9 +183,22 @@ final routerProvider = Provider<GoRouter>((ref) {
               maxSelected: maxActivitySelection,
               initial: draft.activities,
               progressRatio: OnboardingStep.activities.progressRatio,
-              onContinue: (Set<String> selected) {
+              onContinue: (Set<String> selected) async {
+                final repo = ref.read(profileRepositoryProvider);
+                // Convert chip labels ("Board Games") to activity_category
+                // UUIDs. Unknown labels are silently dropped.
+                final cats = await repo.fetchActivityCategories();
+                final Map<String, String> labelToId = <String, String>{
+                  for (final c in cats) c['label'] as String: c['id'] as String,
+                };
+                final List<String> ids = selected
+                    .map((label) => labelToId[label])
+                    .whereType<String>()
+                    .toList();
+                await repo.setActivities(ids);
                 ref.read(onboardingDraftProvider.notifier).setActivities(selected);
-                context.push(RoutePaths.onboardingBio);
+                ref.read(profileRefreshTriggerProvider.notifier).state++;
+                if (context.mounted) context.push(RoutePaths.onboardingBio);
               },
             );
           },
@@ -158,7 +213,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             maxLength: 300,
             initial: ref.watch(onboardingDraftProvider).bio ?? '',
             progressRatio: OnboardingStep.bio.progressRatio,
-            onSave: ref.read(onboardingDraftProvider.notifier).updateBio,
+            onSave: (String bio) async {
+              await ref.read(profileRepositoryProvider).setBio(bio);
+              ref.read(onboardingDraftProvider.notifier).updateBio(bio);
+              ref.read(profileRefreshTriggerProvider.notifier).state++;
+            },
             onContinue: () => context.push(RoutePaths.onboardingSelfieVerification),
           ),
         ),
@@ -170,9 +229,25 @@ final routerProvider = Provider<GoRouter>((ref) {
             profilePhotoPath:
                 ref.watch(onboardingDraftProvider).profilePhotoPath!,
             onContinue: (String path) async {
-              final controller = ref.read(onboardingDraftProvider.notifier);
-              controller.setSelfiePhoto(path);
-              await controller.submit();
+              final repo = ref.read(profileRepositoryProvider);
+              final uid = ref.read(sessionProvider)!.user.id;
+              // Selfie goes to the private verifications bucket — only
+              // the owner + admins can read it (RLS enforced).
+              await repo.uploadPhoto(
+                file: File(path),
+                bucket: 'verifications',
+                purpose: 'selfie',
+                ownerType: 'profile',
+                ownerId: uid,
+              );
+              await repo.submitForReview();
+              ref.read(onboardingDraftProvider.notifier).setSelfiePhoto(path);
+              // Force the profile to re-read from the DB so the auth
+              // state provider notices review_status flipped to 'submitted'.
+              ref.read(profileRefreshTriggerProvider.notifier).state++;
+              // The router redirect will forward us to /awaiting-review
+              // as soon as the new status propagates; explicit go() as
+              // a safety net.
               if (context.mounted) context.go(RoutePaths.awaitingReview);
             },
           ),

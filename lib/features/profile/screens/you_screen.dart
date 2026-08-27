@@ -8,7 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/photo_image_provider.dart';
 import '../../../core/widgets/gradient_button.dart';
-import '../../auth/providers/auth_state_provider.dart';
+import '../../../core/api/supabase_client.dart';
 import '../../home/providers/event_providers.dart';
 import '../../onboarding/models/onboarding_draft.dart';
 import '../../onboarding/models/onboarding_enums.dart';
@@ -679,8 +679,8 @@ class _LogoutTile extends ConsumerWidget {
       ),
     );
     if (ok == true) {
-      // Router redirects to the login screen the instant this flips.
-      ref.read(stubSignedInProvider.notifier).state = false;
+      // Router redirects to the login screen the instant the session drops.
+      await SupabaseService.client.auth.signOut();
     }
   }
 }

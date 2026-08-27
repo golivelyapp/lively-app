@@ -2,14 +2,13 @@ class Env {
   const Env._();
 
   static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-  static const String supabaseAnonKey = String.fromEnvironment(
-    'SUPABASE_ANON_KEY',
-  );
+  static const String supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 
-  /// True once a real Supabase project is wired in via
-  /// `--dart-define-from-file=.env.json`. Until then, sign-in and the
-  /// onboarding submit step are stubbed locally instead of hitting a
-  /// backend that doesn't exist yet.
+  /// Deep-link scheme registered with Supabase for OAuth redirects.
+  /// The Android intent filter (below) picks up lively://login-callback/
+  /// and returns the user into the app.
+  static const String authRedirectUrl = 'lively://login-callback/';
+
   static bool get hasSupabaseConfig =>
       supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
 

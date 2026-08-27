@@ -1,0 +1,49 @@
+name: lively
+description: Lively — dating app
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.5.1
+  go_router: ^17.5.0
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.12.0
+  supabase_flutter: ^2.5.6
+  cached_network_image: ^3.4.0
+  image_picker: ^1.1.2
+  hive_flutter: ^1.1.0
+  dio: ^5.5.0+1
+  flutter_animate: ^4.5.0
+  share_plus: ^10.1.2
+  url_launcher: ^6.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.4.11
+  freezed: ^4.0.0
+  json_serializable: ^6.8.0
+  flutter_launcher_icons: ^0.14.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "app_icon.png"
+  min_sdk_android: 21
+  # Adaptive icon: the app_icon PNG already has a white ground behind the
+  # mark, so we use the same source for the foreground and a matching
+  # white for the background. The launcher clips it into a circle/square
+  # per device style and the mark stays centered inside the safe zone.
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "app_icon.png"

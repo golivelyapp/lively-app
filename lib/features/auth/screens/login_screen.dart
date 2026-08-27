@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,9 +16,66 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen>
+    with WidgetsBindingObserver {
   bool _signingIn = false;
   String _provider = '';
+  Timer? _timeoutTimer;
+  Timer? _resumeGraceTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    _timeoutTimer?.cancel();
+    _resumeGraceTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // When the OAuth browser tab closes and the app returns to
+    // foreground, give Supabase a 3s grace window to process the
+    // callback and create a session. If no session materialises, the
+    // user cancelled (or OAuth failed silently) — clear the spinner
+    // instead of hanging forever.
+    if (state == AppLifecycleState.resumed && _signingIn) {
+      _resumeGraceTimer?.cancel();
+      _resumeGraceTimer = Timer(const Duration(seconds: 3), () {
+        if (!mounted) return;
+        final Session? session =
+            SupabaseService.client.auth.currentSession;
+        if (session == null) {
+          _cancelSignIn(reason: 'Sign-in cancelled.');
+        }
+        // If session != null, the auth-state stream fires and the
+        // router unmounts this screen — no cleanup needed.
+      });
+    }
+  }
+
+  void _cancelSignIn({String? reason}) {
+    _timeoutTimer?.cancel();
+    _resumeGraceTimer?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _signingIn = false;
+      _provider = '';
+    });
+    if (reason != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(reason),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
 
   Future<void> _signIn(OAuthProvider provider, String label) async {
     if (_signingIn) return;
@@ -25,11 +83,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _signingIn = true;
       _provider = label;
     });
+
+    // Hard 45-second ceiling. If we're still waiting after that,
+    // something went wrong (network, verification blocking the flow,
+    // user forgot) — reset the UI so they can try again.
+    _timeoutTimer = Timer(const Duration(seconds: 45), () {
+      _cancelSignIn(reason: 'Sign-in took too long. Please try again.');
+    });
+
     try {
-      // Opens the browser (Chrome custom tab) to the provider's consent
-      // screen. After the user authorises, Supabase redirects to
-      // lively://login-callback/ which the Android intent filter catches
-      // and returns the app to the foreground with a session.
       await SupabaseService.client.auth.signInWithOAuth(
         provider,
         redirectTo: Env.authRedirectUrl,
@@ -39,18 +101,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         authScreenLaunchMode: LaunchMode.externalApplication,
       );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Sign-in failed: $e'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+      _cancelSignIn(reason: 'Sign-in failed: $e');
     }
-    // We don't clear _signingIn here — the router redirects away on
-    // AuthStateChange, unmounting this screen. If the user hits the
-    // browser Back button we reset on resume.
   }
 
   @override
@@ -109,36 +161,56 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ],
               ),
-              if (_signingIn)
-                Positioned.fill(
-                  child: GestureDetector(
-                    // Tap the overlay to cancel — useful if the user
-                    // aborted the browser and came back.
-                    onTap: () => setState(() => _signingIn = false),
-                    child: ColoredBox(
-                      color: Colors.black.withOpacity(0.25),
-                      child: const Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            SizedBox(
-                              width: 32,
-                              height: 32,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 3,
-                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.textOnDark),
-                              ),
-                            ),
-                            SizedBox(height: AppSpacing.sm),
-                            Text('Waiting for Google…', style: AppTextStyles.body),
-                            SizedBox(height: AppSpacing.xs),
-                            Text('Tap anywhere to cancel', style: AppTextStyles.caption),
-                          ],
-                        ),
-                      ),
-                    ),
+              if (_signingIn) _SigningInOverlay(onCancel: () => _cancelSignIn()),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SigningInOverlay extends StatelessWidget {
+  const _SigningInOverlay({required this.onCancel});
+  final VoidCallback onCancel;
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: ColoredBox(
+        color: Colors.black.withOpacity(0.35),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const SizedBox(
+                width: 32,
+                height: 32,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.textOnDark),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text('Waiting for Google…', style: AppTextStyles.body.copyWith(color: AppColors.textOnDark)),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Times out automatically in 45s',
+                style: AppTextStyles.caption.copyWith(color: AppColors.textOnDark.withOpacity(0.85)),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TextButton(
+                onPressed: onCancel,
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.white.withOpacity(0.15),
+                  foregroundColor: AppColors.textOnDark,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                    side: const BorderSide(color: Colors.white54),
                   ),
                 ),
+                child: const Text('Cancel'),
+              ),
             ],
           ),
         ),

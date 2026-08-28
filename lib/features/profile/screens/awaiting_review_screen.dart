@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/api/env.dart';
+import '../../auth/providers/auth_state_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -29,9 +30,13 @@ class _AwaitingReviewScreenState extends ConsumerState<AwaitingReviewScreen> {
   void initState() {
     super.initState();
     if (Env.previewMode) {
-      _previewApproveTimer = Timer(const Duration(seconds: 4), () {
+      _previewApproveTimer = Timer(const Duration(seconds: 4), () async {
+        if (!mounted) return;
+        await ref.read(onboardingDraftProvider.notifier).previewApprove();
         if (mounted) {
-          ref.read(onboardingDraftProvider.notifier).previewApprove();
+          // Force auth-state provider to re-read profile from Supabase
+          // so the router notices review_status flipped to approved.
+          ref.read(profileRefreshTriggerProvider.notifier).state++;
         }
       });
     }
@@ -156,8 +161,12 @@ class _AwaitingReviewScreenState extends ConsumerState<AwaitingReviewScreen> {
             if (Env.previewMode) ...<Widget>[
               const SizedBox(height: AppSpacing.md),
               OutlinedButton(
-                onPressed: () =>
-                    ref.read(onboardingDraftProvider.notifier).previewApprove(),
+                onPressed: () async {
+                  await ref
+                      .read(onboardingDraftProvider.notifier)
+                      .previewApprove();
+                  ref.read(profileRefreshTriggerProvider.notifier).state++;
+                },
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
                   foregroundColor: AppColors.magenta,

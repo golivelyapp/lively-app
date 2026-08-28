@@ -1,42 +1,27 @@
 import 'package:flutter/material.dart';
 import 'chip_option.dart';
 
+/// Activity categories shown on the onboarding "Activities of Interest"
+/// screen AND on the Home filter pills AND on the Create Event category
+/// picker. Must stay in sync with the `activity_categories` seed data in
+/// supabase/migrations/0001_init.sql.
 const List<ChipOption> activityOptions = <ChipOption>[
-  ChipOption('Breakfast', icon: Icons.free_breakfast_outlined),
-  ChipOption('Brunch', icon: Icons.brunch_dining_outlined),
-  ChipOption('Lunch', icon: Icons.lunch_dining_outlined),
-  ChipOption('Dinner', icon: Icons.dinner_dining_outlined),
-  ChipOption('Coffee', icon: Icons.coffee_outlined),
-  ChipOption('Picnic', icon: Icons.grass_outlined),
-  ChipOption('Barbecue', icon: Icons.outdoor_grill_outlined),
-  ChipOption('Board Games', icon: Icons.casino_outlined),
-  ChipOption('House Party', icon: Icons.home_outlined),
-  ChipOption('Potluck', icon: Icons.ramen_dining_outlined),
-  ChipOption('Bike Ride', icon: Icons.directions_bike_outlined),
-  ChipOption('Movie', icon: Icons.movie_outlined),
-  ChipOption('Road Trip', icon: Icons.directions_car_outlined),
-  ChipOption('Karaoke', icon: Icons.mic_outlined),
-  ChipOption('Outdoor Event', icon: Icons.terrain_outlined),
-  ChipOption('Concert', icon: Icons.stadium_outlined),
-  ChipOption('Party', icon: Icons.nightlife_outlined),
-  ChipOption('Live Music', icon: Icons.graphic_eq_outlined),
-  ChipOption('Art & Craft', icon: Icons.palette_outlined),
-  ChipOption('Volunteer', icon: Icons.volunteer_activism_outlined),
-  ChipOption('Cooking', icon: Icons.soup_kitchen_outlined),
-  ChipOption('Health & Fitness', icon: Icons.fitness_center_outlined),
-  ChipOption('Themed Party', icon: Icons.theater_comedy_outlined),
-  ChipOption('Book Reading', icon: Icons.menu_book_outlined),
-  ChipOption('Gaming', icon: Icons.sports_esports_outlined),
-  ChipOption('Shopping', icon: Icons.shopping_bag_outlined),
-  ChipOption('Nature Walking', icon: Icons.hiking_outlined),
-  ChipOption('Standup Comedy', icon: Icons.record_voice_over_outlined),
-  ChipOption('Sightseeing', icon: Icons.photo_camera_outlined),
-  ChipOption('Pet Meetup', icon: Icons.pets_outlined),
-  ChipOption('Camping', icon: Icons.cabin_outlined),
-  ChipOption('Sports', icon: Icons.sports_basketball_outlined),
-  ChipOption('Workshops', icon: Icons.build_outlined),
+  ChipOption('Art',           icon: Icons.palette_outlined),
+  ChipOption('Sports',        icon: Icons.sports_basketball_outlined),
+  ChipOption('Food & Drinks', icon: Icons.restaurant_outlined),
+  ChipOption('Outdoors',      icon: Icons.terrain_outlined),
+  ChipOption('Music',         icon: Icons.graphic_eq_outlined),
+  ChipOption('Board Games',   icon: Icons.casino_outlined),
+  ChipOption('Clubbing',      icon: Icons.nightlife_outlined),
+  ChipOption('Wellness',      icon: Icons.self_improvement_outlined),
+  ChipOption('Movies',        icon: Icons.movie_outlined),
 ];
 
+const int maxActivitySelection = 3;
+
+/// Personality traits — optional profile enhancement (Profile tab).
+/// Not backed by DB rows; stored as text[] on the profile so this list
+/// can grow freely without a migration.
 const List<ChipOption> traitOptions = <ChipOption>[
   ChipOption('Analytical'),
   ChipOption('Supportive'),
@@ -52,30 +37,28 @@ const List<ChipOption> traitOptions = <ChipOption>[
   ChipOption('Motivated'),
   ChipOption('Wise'),
   ChipOption('Adaptable'),
-  ChipOption('Friendly'),
-  ChipOption('Kind'),
-  ChipOption('Adventure'),
-  ChipOption('Disciplined'),
-  ChipOption('Sensitive'),
-  ChipOption('Humility'),
-  ChipOption('Approachable'),
-  ChipOption('Resilient'),
-  ChipOption('Confident'),
-  ChipOption('Courteous'),
-  ChipOption('Cheerful'),
+  ChipOption('Ambitious'),
+  ChipOption('Committed'),
+  ChipOption('Assertive'),
   ChipOption('Practical'),
-  ChipOption('Patient'),
-  ChipOption('Stubborn'),
-  ChipOption('Grateful'),
-  ChipOption('Resourceful'),
-  ChipOption('Charismatic'),
-  ChipOption('Generous'),
-  ChipOption('Diligent'),
-  ChipOption('Knowledgeable'),
-  ChipOption('Openness'),
-  ChipOption('Talkative'),
-  ChipOption('Organised'),
+  ChipOption('Creative'),
+  ChipOption('Optimistic'),
+  ChipOption('Emotional'),
+  ChipOption('Confident'),
+  ChipOption('Passionate'),
+  ChipOption('Loyal'),
+  ChipOption('Reliable'),
+  ChipOption('Humble'),
+  ChipOption('Introvert'),
+  ChipOption('Extrovert'),
+  ChipOption('Chill'),
+  ChipOption('Deep Thinker'),
+  ChipOption('Playful'),
+  ChipOption('Sarcastic'),
+  ChipOption('Grounded'),
+  ChipOption('Bold'),
+  ChipOption('Kind'),
+  ChipOption('Curious mind'),
 ];
 
-const int maxActivitySelection = 3;
 const int maxTraitSelection = 3;

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/env.dart';
+import '../../../core/api/supabase_client.dart';
 import '../models/onboarding_draft.dart';
 import '../models/onboarding_enums.dart';
 import '../models/profile_prompt.dart';
@@ -104,7 +105,15 @@ class OnboardingDraftController extends Notifier<OnboardingDraft> {
   /// Preview-only helper: skip the manual admin approval step so the demo
   /// build can walk end-to-end to Home. Real production doesn't call this;
   /// approval flips to `approved` when the admin marks it in Supabase.
-  void previewApprove() {
+  /// Now also writes to Supabase so the real authStateProvider picks it up.
+  Future<void> previewApprove() async {
+    final client = SupabaseService.client;
+    final String? uid = client.auth.currentUser?.id;
+    if (uid != null) {
+      await client.from('profiles').update({
+        'review_status': 'approved',
+      }).eq('id', uid);
+    }
     state = state.copyWith(reviewStatus: ProfileReviewStatus.approved);
   }
 }

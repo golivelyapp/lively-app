@@ -81,7 +81,8 @@ class ProfileRepository {
   }
 
   /// Uploads a photo to Storage and inserts a matching `attachments` row.
-  /// Returns the public URL (for public buckets) or signed URL (private).
+  /// Returns the public URL. Throws with actionable messages on failure so
+  /// the caller can surface them.
   Future<String> uploadPhoto({
     required File file,
     required String bucket,        // 'avatars' | 'verifications' | ...
@@ -89,32 +90,69 @@ class ProfileRepository {
     required String ownerType,     // 'profile' | 'host_application' | ...
     required String ownerId,
   }) async {
+    if (!await file.exists()) {
+      throw StateError('Photo file no longer exists on device.');
+    }
     // Path convention: <owner_id>/<epoch>_<purpose>.<ext>
-    final String ext = file.path.split('.').last.toLowerCase();
+    // The (owner_id, purpose) prefix is the RLS boundary — storage policies
+    // check that (storage.foldername(name))[1] == auth.uid().
+    final String extRaw = file.path.split('.').last.toLowerCase();
+    final String ext = _normaliseExt(extRaw);
+    final String mimeType = _mimeFor(ext);
     final String path =
         '$ownerId/${DateTime.now().millisecondsSinceEpoch}_$purpose.$ext';
-    await _c.storage.from(bucket).upload(
-          path,
-          file,
-          fileOptions: FileOptions(
-            contentType: 'image/$ext',
-            upsert: false,
-          ),
-        );
+
+    try {
+      await _c.storage.from(bucket).upload(
+            path,
+            file,
+            fileOptions: FileOptions(
+              contentType: mimeType,
+              upsert: false,
+            ),
+          );
+    } on StorageException catch (e) {
+      throw Exception('Storage upload failed: ${e.message}');
+    }
+
     final String url = _c.storage.from(bucket).getPublicUrl(path);
-    // Track in the unified attachments table so cleanup + moderation
-    // work later.
-    await _c.from('attachments').insert({
-      'owner_type': ownerType,
-      'owner_id': ownerId,
-      'purpose': purpose,
-      'storage_bucket': bucket,
-      'storage_path': path,
-      'mime_type': 'image/$ext',
-      'is_public': bucket == 'avatars' || bucket == 'event_covers' || bucket == 'event_gallery',
-    });
+
+    try {
+      await _c.from('attachments').insert({
+        'owner_type': ownerType,
+        'owner_id': ownerId,
+        'purpose': purpose,
+        'storage_bucket': bucket,
+        'storage_path': path,
+        'mime_type': mimeType,
+        'bytes': await file.length(),
+        'is_public': bucket == 'avatars' ||
+            bucket == 'event_covers' ||
+            bucket == 'event_gallery',
+      });
+    } on PostgrestException catch (e) {
+      // If the DB insert fails, clean up the orphaned storage object so
+      // retries don't hit "already exists" on the next attempt.
+      try {
+        await _c.storage.from(bucket).remove(<String>[path]);
+      } catch (_) {}
+      throw Exception('Attachment record failed: ${e.message}');
+    }
     return url;
   }
+
+  static String _normaliseExt(String ext) => switch (ext) {
+    'jpeg' => 'jpg',
+    'heic' || 'heif' => 'jpg',   // ImagePicker converts iOS HEIC to JPG
+    _ => ext,
+  };
+
+  static String _mimeFor(String ext) => switch (ext) {
+    'jpg' => 'image/jpeg',
+    'png' => 'image/png',
+    'webp' => 'image/webp',
+    _ => 'image/$ext',
+  };
 
   Future<void> submitForReview() async {
     await _c

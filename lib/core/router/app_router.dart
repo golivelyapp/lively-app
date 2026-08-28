@@ -1,8 +1,9 @@
-import 'package:flutter/widgets.dart';
+import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api/env.dart';
-import 'dart:io';
+import '../../core/utils/submission_guard.dart';
 import '../../features/auth/providers/auth_state_provider.dart';
 import '../../features/auth/repositories/profile_repository.dart';
 import '../../features/auth/screens/login_screen.dart';
@@ -120,32 +121,35 @@ final routerProvider = Provider<GoRouter>((ref) {
                 required location,
                 required gender,
               }) async {
-                final repo = ref.read(profileRepositoryProvider);
-                // Look up city + locality UUIDs from the shared name
-                // string the picker returned.
-                final String cityId = await repo.defaultCityId();
-                final localities = await repo.fetchLocalities();
-                final match = localities.firstWhere(
-                  (l) => l['name'] == location,
-                  orElse: () => localities.first,
-                );
-                await repo.updateBasics(
-                  name: name,
-                  dateOfBirth: dateOfBirth,
-                  gender: gender.name,   // Gender enum → 'male'|'female'|'other'
-                  cityId: cityId,
-                  localityId: match['id'] as String,
-                );
-                // Keep the local draft in sync so downstream screens
-                // that still read from it show the right values.
-                ref.read(onboardingDraftProvider.notifier).updateBasics(
+                final ok = await runGuarded(
+                  context,
+                  loadingLabel: 'Saving your basics…',
+                  errorPrefix: "Couldn't save your basics",
+                  action: () async {
+                    final repo = ref.read(profileRepositoryProvider);
+                    final String cityId = await repo.defaultCityId();
+                    final localities = await repo.fetchLocalities();
+                    final match = localities.firstWhere(
+                      (l) => l['name'] == location,
+                      orElse: () => localities.first,
+                    );
+                    await repo.updateBasics(
                       name: name,
                       dateOfBirth: dateOfBirth,
-                      location: location,
-                      gender: gender,
+                      gender: gender.name,
+                      cityId: cityId,
+                      localityId: match['id'] as String,
                     );
-                ref.read(profileRefreshTriggerProvider.notifier).state++;
-                if (context.mounted) context.push(RoutePaths.onboardingProfilePicture);
+                    ref.read(onboardingDraftProvider.notifier).updateBasics(
+                          name: name,
+                          dateOfBirth: dateOfBirth,
+                          location: location,
+                          gender: gender,
+                        );
+                    ref.read(profileRefreshTriggerProvider.notifier).state++;
+                  },
+                );
+                if (ok && context.mounted) context.push(RoutePaths.onboardingProfilePicture);
               },
             );
           },
@@ -156,18 +160,25 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (BuildContext context, __) => Consumer(
           builder: (context, ref, __) => ProfilePictureScreen(
             onContinue: (String path) async {
-              final repo = ref.read(profileRepositoryProvider);
-              final uid = ref.read(sessionProvider)!.user.id;
-              await repo.uploadPhoto(
-                file: File(path),
-                bucket: 'avatars',
-                purpose: 'avatar',
-                ownerType: 'profile',
-                ownerId: uid,
+              final ok = await runGuarded(
+                context,
+                loadingLabel: 'Uploading your photo…',
+                errorPrefix: "Couldn't upload your photo",
+                action: () async {
+                  final repo = ref.read(profileRepositoryProvider);
+                  final uid = ref.read(sessionProvider)!.user.id;
+                  await repo.uploadPhoto(
+                    file: File(path),
+                    bucket: 'avatars',
+                    purpose: 'avatar',
+                    ownerType: 'profile',
+                    ownerId: uid,
+                  );
+                  ref.read(onboardingDraftProvider.notifier).setProfilePhoto(path);
+                  ref.read(profileRefreshTriggerProvider.notifier).state++;
+                },
               );
-              ref.read(onboardingDraftProvider.notifier).setProfilePhoto(path);
-              ref.read(profileRefreshTriggerProvider.notifier).state++;
-              if (context.mounted) context.push(RoutePaths.onboardingActivities);
+              if (ok && context.mounted) context.push(RoutePaths.onboardingActivities);
             },
           ),
         ),
@@ -184,21 +195,26 @@ final routerProvider = Provider<GoRouter>((ref) {
               initial: draft.activities,
               progressRatio: OnboardingStep.activities.progressRatio,
               onContinue: (Set<String> selected) async {
-                final repo = ref.read(profileRepositoryProvider);
-                // Convert chip labels ("Board Games") to activity_category
-                // UUIDs. Unknown labels are silently dropped.
-                final cats = await repo.fetchActivityCategories();
-                final Map<String, String> labelToId = <String, String>{
-                  for (final c in cats) c['label'] as String: c['id'] as String,
-                };
-                final List<String> ids = selected
-                    .map((label) => labelToId[label])
-                    .whereType<String>()
-                    .toList();
-                await repo.setActivities(ids);
-                ref.read(onboardingDraftProvider.notifier).setActivities(selected);
-                ref.read(profileRefreshTriggerProvider.notifier).state++;
-                if (context.mounted) context.push(RoutePaths.onboardingBio);
+                final ok = await runGuarded(
+                  context,
+                  loadingLabel: 'Saving your interests…',
+                  errorPrefix: "Couldn't save your interests",
+                  action: () async {
+                    final repo = ref.read(profileRepositoryProvider);
+                    final cats = await repo.fetchActivityCategories();
+                    final Map<String, String> labelToId = <String, String>{
+                      for (final c in cats) c['label'] as String: c['id'] as String,
+                    };
+                    final List<String> ids = selected
+                        .map((label) => labelToId[label])
+                        .whereType<String>()
+                        .toList();
+                    await repo.setActivities(ids);
+                    ref.read(onboardingDraftProvider.notifier).setActivities(selected);
+                    ref.read(profileRefreshTriggerProvider.notifier).state++;
+                  },
+                );
+                if (ok && context.mounted) context.push(RoutePaths.onboardingBio);
               },
             );
           },
@@ -213,12 +229,26 @@ final routerProvider = Provider<GoRouter>((ref) {
             maxLength: 300,
             initial: ref.watch(onboardingDraftProvider).bio ?? '',
             progressRatio: OnboardingStep.bio.progressRatio,
-            onSave: (String bio) async {
-              await ref.read(profileRepositoryProvider).setBio(bio);
+            // onSave fires on Continue in SingleTextStepScreen — safe to
+            // treat as the save-and-advance action. Keep local + remote
+            // in sync but don't bump the refresh trigger (nothing else
+            // reads bio right now).
+            onSave: (String bio) {
               ref.read(onboardingDraftProvider.notifier).updateBio(bio);
-              ref.read(profileRefreshTriggerProvider.notifier).state++;
             },
-            onContinue: () => context.push(RoutePaths.onboardingSelfieVerification),
+            onContinue: () async {
+              final bio = ref.read(onboardingDraftProvider).bio ?? '';
+              final ok = await runGuarded(
+                context,
+                loadingLabel: 'Saving your bio…',
+                errorPrefix: "Couldn't save your bio",
+                action: () async {
+                  await ref.read(profileRepositoryProvider).setBio(bio);
+                  ref.read(profileRefreshTriggerProvider.notifier).state++;
+                },
+              );
+              if (ok && context.mounted) context.push(RoutePaths.onboardingSelfieVerification);
+            },
           ),
         ),
       ),
@@ -229,26 +259,26 @@ final routerProvider = Provider<GoRouter>((ref) {
             profilePhotoPath:
                 ref.watch(onboardingDraftProvider).profilePhotoPath!,
             onContinue: (String path) async {
-              final repo = ref.read(profileRepositoryProvider);
-              final uid = ref.read(sessionProvider)!.user.id;
-              // Selfie goes to the private verifications bucket — only
-              // the owner + admins can read it (RLS enforced).
-              await repo.uploadPhoto(
-                file: File(path),
-                bucket: 'verifications',
-                purpose: 'selfie',
-                ownerType: 'profile',
-                ownerId: uid,
+              final ok = await runGuarded(
+                context,
+                loadingLabel: 'Submitting for review…',
+                errorPrefix: "Couldn't submit your selfie",
+                action: () async {
+                  final repo = ref.read(profileRepositoryProvider);
+                  final uid = ref.read(sessionProvider)!.user.id;
+                  await repo.uploadPhoto(
+                    file: File(path),
+                    bucket: 'verifications',
+                    purpose: 'selfie',
+                    ownerType: 'profile',
+                    ownerId: uid,
+                  );
+                  await repo.submitForReview();
+                  ref.read(onboardingDraftProvider.notifier).setSelfiePhoto(path);
+                  ref.read(profileRefreshTriggerProvider.notifier).state++;
+                },
               );
-              await repo.submitForReview();
-              ref.read(onboardingDraftProvider.notifier).setSelfiePhoto(path);
-              // Force the profile to re-read from the DB so the auth
-              // state provider notices review_status flipped to 'submitted'.
-              ref.read(profileRefreshTriggerProvider.notifier).state++;
-              // The router redirect will forward us to /awaiting-review
-              // as soon as the new status propagates; explicit go() as
-              // a safety net.
-              if (context.mounted) context.go(RoutePaths.awaitingReview);
+              if (ok && context.mounted) context.go(RoutePaths.awaitingReview);
             },
           ),
         ),

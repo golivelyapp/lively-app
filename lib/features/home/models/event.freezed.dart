@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Event {
 
- String get id; String get title; String get coverImageUrl; EventCategory get category; String get hostId; String get hostName; String get hostPhotoUrl; bool get hostVerified; String get hostBio; int get hostEventsHosted; double get hostRating; DateTime get startTime; int get durationMinutes; String get venueName; String get venueAddress; String get neighbourhood; int get priceRupees; int get totalSpots; int get maleRsvpCount; int get femaleRsvpCount; List<String> get attendeeAvatarUrls; String get description; EventGenderPolicy get genderPolicy; bool get isGoing;
+ String get id; String get title; String get coverImageUrl; EventCategory get category; String get hostId; String get hostName; String get hostPhotoUrl; bool get hostVerified; String get hostBio; int get hostEventsHosted; double get hostRating; DateTime get startTime; int get durationMinutes; String get venueName; String get venueAddress; String get neighbourhood; int get priceRupees; int get totalSpots; int get maleRsvpCount; int get femaleRsvpCount; List<String> get attendeeAvatarUrls; String get description; EventGenderPolicy get genderPolicy; bool get isGoing; int? get priceRupeesWomen; int? get priceRupeesMen;
 /// Create a copy of Event
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -26,16 +26,16 @@ $EventCopyWith<Event> get copyWith => _$EventCopyWithImpl<Event>(this as Event, 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Event&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.coverImageUrl, coverImageUrl) || other.coverImageUrl == coverImageUrl)&&(identical(other.category, category) || other.category == category)&&(identical(other.hostId, hostId) || other.hostId == hostId)&&(identical(other.hostName, hostName) || other.hostName == hostName)&&(identical(other.hostPhotoUrl, hostPhotoUrl) || other.hostPhotoUrl == hostPhotoUrl)&&(identical(other.hostVerified, hostVerified) || other.hostVerified == hostVerified)&&(identical(other.hostBio, hostBio) || other.hostBio == hostBio)&&(identical(other.hostEventsHosted, hostEventsHosted) || other.hostEventsHosted == hostEventsHosted)&&(identical(other.hostRating, hostRating) || other.hostRating == hostRating)&&(identical(other.startTime, startTime) || other.startTime == startTime)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes)&&(identical(other.venueName, venueName) || other.venueName == venueName)&&(identical(other.venueAddress, venueAddress) || other.venueAddress == venueAddress)&&(identical(other.neighbourhood, neighbourhood) || other.neighbourhood == neighbourhood)&&(identical(other.priceRupees, priceRupees) || other.priceRupees == priceRupees)&&(identical(other.totalSpots, totalSpots) || other.totalSpots == totalSpots)&&(identical(other.maleRsvpCount, maleRsvpCount) || other.maleRsvpCount == maleRsvpCount)&&(identical(other.femaleRsvpCount, femaleRsvpCount) || other.femaleRsvpCount == femaleRsvpCount)&&const DeepCollectionEquality().equals(other.attendeeAvatarUrls, attendeeAvatarUrls)&&(identical(other.description, description) || other.description == description)&&(identical(other.genderPolicy, genderPolicy) || other.genderPolicy == genderPolicy)&&(identical(other.isGoing, isGoing) || other.isGoing == isGoing));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Event&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.coverImageUrl, coverImageUrl) || other.coverImageUrl == coverImageUrl)&&(identical(other.category, category) || other.category == category)&&(identical(other.hostId, hostId) || other.hostId == hostId)&&(identical(other.hostName, hostName) || other.hostName == hostName)&&(identical(other.hostPhotoUrl, hostPhotoUrl) || other.hostPhotoUrl == hostPhotoUrl)&&(identical(other.hostVerified, hostVerified) || other.hostVerified == hostVerified)&&(identical(other.hostBio, hostBio) || other.hostBio == hostBio)&&(identical(other.hostEventsHosted, hostEventsHosted) || other.hostEventsHosted == hostEventsHosted)&&(identical(other.hostRating, hostRating) || other.hostRating == hostRating)&&(identical(other.startTime, startTime) || other.startTime == startTime)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes)&&(identical(other.venueName, venueName) || other.venueName == venueName)&&(identical(other.venueAddress, venueAddress) || other.venueAddress == venueAddress)&&(identical(other.neighbourhood, neighbourhood) || other.neighbourhood == neighbourhood)&&(identical(other.priceRupees, priceRupees) || other.priceRupees == priceRupees)&&(identical(other.totalSpots, totalSpots) || other.totalSpots == totalSpots)&&(identical(other.maleRsvpCount, maleRsvpCount) || other.maleRsvpCount == maleRsvpCount)&&(identical(other.femaleRsvpCount, femaleRsvpCount) || other.femaleRsvpCount == femaleRsvpCount)&&const DeepCollectionEquality().equals(other.attendeeAvatarUrls, attendeeAvatarUrls)&&(identical(other.description, description) || other.description == description)&&(identical(other.genderPolicy, genderPolicy) || other.genderPolicy == genderPolicy)&&(identical(other.isGoing, isGoing) || other.isGoing == isGoing)&&(identical(other.priceRupeesWomen, priceRupeesWomen) || other.priceRupeesWomen == priceRupeesWomen)&&(identical(other.priceRupeesMen, priceRupeesMen) || other.priceRupeesMen == priceRupeesMen));
 }
 
 
 @override
-int get hashCode => Object.hashAll([runtimeType,id,title,coverImageUrl,category,hostId,hostName,hostPhotoUrl,hostVerified,hostBio,hostEventsHosted,hostRating,startTime,durationMinutes,venueName,venueAddress,neighbourhood,priceRupees,totalSpots,maleRsvpCount,femaleRsvpCount,const DeepCollectionEquality().hash(attendeeAvatarUrls),description,genderPolicy,isGoing]);
+int get hashCode => Object.hashAll([runtimeType,id,title,coverImageUrl,category,hostId,hostName,hostPhotoUrl,hostVerified,hostBio,hostEventsHosted,hostRating,startTime,durationMinutes,venueName,venueAddress,neighbourhood,priceRupees,totalSpots,maleRsvpCount,femaleRsvpCount,const DeepCollectionEquality().hash(attendeeAvatarUrls),description,genderPolicy,isGoing,priceRupeesWomen,priceRupeesMen]);
 
 @override
 String toString() {
-  return 'Event(id: $id, title: $title, coverImageUrl: $coverImageUrl, category: $category, hostId: $hostId, hostName: $hostName, hostPhotoUrl: $hostPhotoUrl, hostVerified: $hostVerified, hostBio: $hostBio, hostEventsHosted: $hostEventsHosted, hostRating: $hostRating, startTime: $startTime, durationMinutes: $durationMinutes, venueName: $venueName, venueAddress: $venueAddress, neighbourhood: $neighbourhood, priceRupees: $priceRupees, totalSpots: $totalSpots, maleRsvpCount: $maleRsvpCount, femaleRsvpCount: $femaleRsvpCount, attendeeAvatarUrls: $attendeeAvatarUrls, description: $description, genderPolicy: $genderPolicy, isGoing: $isGoing)';
+  return 'Event(id: $id, title: $title, coverImageUrl: $coverImageUrl, category: $category, hostId: $hostId, hostName: $hostName, hostPhotoUrl: $hostPhotoUrl, hostVerified: $hostVerified, hostBio: $hostBio, hostEventsHosted: $hostEventsHosted, hostRating: $hostRating, startTime: $startTime, durationMinutes: $durationMinutes, venueName: $venueName, venueAddress: $venueAddress, neighbourhood: $neighbourhood, priceRupees: $priceRupees, totalSpots: $totalSpots, maleRsvpCount: $maleRsvpCount, femaleRsvpCount: $femaleRsvpCount, attendeeAvatarUrls: $attendeeAvatarUrls, description: $description, genderPolicy: $genderPolicy, isGoing: $isGoing, priceRupeesWomen: $priceRupeesWomen, priceRupeesMen: $priceRupeesMen)';
 }
 
 
@@ -46,7 +46,7 @@ abstract mixin class $EventCopyWith<$Res>  {
   factory $EventCopyWith(Event value, $Res Function(Event) _then) = _$EventCopyWithImpl;
 @useResult
 $Res call({
- String id, String title, String coverImageUrl, EventCategory category, String hostId, String hostName, String hostPhotoUrl, bool hostVerified, String hostBio, int hostEventsHosted, double hostRating, DateTime startTime, int durationMinutes, String venueName, String venueAddress, String neighbourhood, int priceRupees, int totalSpots, int maleRsvpCount, int femaleRsvpCount, List<String> attendeeAvatarUrls, String description, EventGenderPolicy genderPolicy, bool isGoing
+ String id, String title, String coverImageUrl, EventCategory category, String hostId, String hostName, String hostPhotoUrl, bool hostVerified, String hostBio, int hostEventsHosted, double hostRating, DateTime startTime, int durationMinutes, String venueName, String venueAddress, String neighbourhood, int priceRupees, int totalSpots, int maleRsvpCount, int femaleRsvpCount, List<String> attendeeAvatarUrls, String description, EventGenderPolicy genderPolicy, bool isGoing, int? priceRupeesWomen, int? priceRupeesMen
 });
 
 
@@ -63,7 +63,7 @@ class _$EventCopyWithImpl<$Res>
 
 /// Create a copy of Event
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? coverImageUrl = null,Object? category = null,Object? hostId = null,Object? hostName = null,Object? hostPhotoUrl = null,Object? hostVerified = null,Object? hostBio = null,Object? hostEventsHosted = null,Object? hostRating = null,Object? startTime = null,Object? durationMinutes = null,Object? venueName = null,Object? venueAddress = null,Object? neighbourhood = null,Object? priceRupees = null,Object? totalSpots = null,Object? maleRsvpCount = null,Object? femaleRsvpCount = null,Object? attendeeAvatarUrls = null,Object? description = null,Object? genderPolicy = null,Object? isGoing = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? coverImageUrl = null,Object? category = null,Object? hostId = null,Object? hostName = null,Object? hostPhotoUrl = null,Object? hostVerified = null,Object? hostBio = null,Object? hostEventsHosted = null,Object? hostRating = null,Object? startTime = null,Object? durationMinutes = null,Object? venueName = null,Object? venueAddress = null,Object? neighbourhood = null,Object? priceRupees = null,Object? totalSpots = null,Object? maleRsvpCount = null,Object? femaleRsvpCount = null,Object? attendeeAvatarUrls = null,Object? description = null,Object? genderPolicy = null,Object? isGoing = null,Object? priceRupeesWomen = freezed,Object? priceRupeesMen = freezed,}) {
   return _then(Event(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -89,7 +89,9 @@ as int,attendeeAvatarUrls: null == attendeeAvatarUrls ? _self.attendeeAvatarUrls
 as List<String>,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String,genderPolicy: null == genderPolicy ? _self.genderPolicy : genderPolicy // ignore: cast_nullable_to_non_nullable
 as EventGenderPolicy,isGoing: null == isGoing ? _self.isGoing : isGoing // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,priceRupeesWomen: freezed == priceRupeesWomen ? _self.priceRupeesWomen : priceRupeesWomen // ignore: cast_nullable_to_non_nullable
+as int?,priceRupeesMen: freezed == priceRupeesMen ? _self.priceRupeesMen : priceRupeesMen // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
@@ -174,10 +176,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String coverImageUrl,  EventCategory category,  String hostId,  String hostName,  String hostPhotoUrl,  bool hostVerified,  String hostBio,  int hostEventsHosted,  double hostRating,  DateTime startTime,  int durationMinutes,  String venueName,  String venueAddress,  String neighbourhood,  int priceRupees,  int totalSpots,  int maleRsvpCount,  int femaleRsvpCount,  List<String> attendeeAvatarUrls,  String description,  EventGenderPolicy genderPolicy,  bool isGoing)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String coverImageUrl,  EventCategory category,  String hostId,  String hostName,  String hostPhotoUrl,  bool hostVerified,  String hostBio,  int hostEventsHosted,  double hostRating,  DateTime startTime,  int durationMinutes,  String venueName,  String venueAddress,  String neighbourhood,  int priceRupees,  int totalSpots,  int maleRsvpCount,  int femaleRsvpCount,  List<String> attendeeAvatarUrls,  String description,  EventGenderPolicy genderPolicy,  bool isGoing,  int? priceRupeesWomen,  int? priceRupeesMen)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Event() when $default != null:
-return $default(_that.id,_that.title,_that.coverImageUrl,_that.category,_that.hostId,_that.hostName,_that.hostPhotoUrl,_that.hostVerified,_that.hostBio,_that.hostEventsHosted,_that.hostRating,_that.startTime,_that.durationMinutes,_that.venueName,_that.venueAddress,_that.neighbourhood,_that.priceRupees,_that.totalSpots,_that.maleRsvpCount,_that.femaleRsvpCount,_that.attendeeAvatarUrls,_that.description,_that.genderPolicy,_that.isGoing);case _:
+return $default(_that.id,_that.title,_that.coverImageUrl,_that.category,_that.hostId,_that.hostName,_that.hostPhotoUrl,_that.hostVerified,_that.hostBio,_that.hostEventsHosted,_that.hostRating,_that.startTime,_that.durationMinutes,_that.venueName,_that.venueAddress,_that.neighbourhood,_that.priceRupees,_that.totalSpots,_that.maleRsvpCount,_that.femaleRsvpCount,_that.attendeeAvatarUrls,_that.description,_that.genderPolicy,_that.isGoing,_that.priceRupeesWomen,_that.priceRupeesMen);case _:
   return orElse();
 
 }
@@ -195,10 +197,10 @@ return $default(_that.id,_that.title,_that.coverImageUrl,_that.category,_that.ho
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String coverImageUrl,  EventCategory category,  String hostId,  String hostName,  String hostPhotoUrl,  bool hostVerified,  String hostBio,  int hostEventsHosted,  double hostRating,  DateTime startTime,  int durationMinutes,  String venueName,  String venueAddress,  String neighbourhood,  int priceRupees,  int totalSpots,  int maleRsvpCount,  int femaleRsvpCount,  List<String> attendeeAvatarUrls,  String description,  EventGenderPolicy genderPolicy,  bool isGoing)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String coverImageUrl,  EventCategory category,  String hostId,  String hostName,  String hostPhotoUrl,  bool hostVerified,  String hostBio,  int hostEventsHosted,  double hostRating,  DateTime startTime,  int durationMinutes,  String venueName,  String venueAddress,  String neighbourhood,  int priceRupees,  int totalSpots,  int maleRsvpCount,  int femaleRsvpCount,  List<String> attendeeAvatarUrls,  String description,  EventGenderPolicy genderPolicy,  bool isGoing,  int? priceRupeesWomen,  int? priceRupeesMen)  $default,) {final _that = this;
 switch (_that) {
 case _Event():
-return $default(_that.id,_that.title,_that.coverImageUrl,_that.category,_that.hostId,_that.hostName,_that.hostPhotoUrl,_that.hostVerified,_that.hostBio,_that.hostEventsHosted,_that.hostRating,_that.startTime,_that.durationMinutes,_that.venueName,_that.venueAddress,_that.neighbourhood,_that.priceRupees,_that.totalSpots,_that.maleRsvpCount,_that.femaleRsvpCount,_that.attendeeAvatarUrls,_that.description,_that.genderPolicy,_that.isGoing);case _:
+return $default(_that.id,_that.title,_that.coverImageUrl,_that.category,_that.hostId,_that.hostName,_that.hostPhotoUrl,_that.hostVerified,_that.hostBio,_that.hostEventsHosted,_that.hostRating,_that.startTime,_that.durationMinutes,_that.venueName,_that.venueAddress,_that.neighbourhood,_that.priceRupees,_that.totalSpots,_that.maleRsvpCount,_that.femaleRsvpCount,_that.attendeeAvatarUrls,_that.description,_that.genderPolicy,_that.isGoing,_that.priceRupeesWomen,_that.priceRupeesMen);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -215,10 +217,10 @@ return $default(_that.id,_that.title,_that.coverImageUrl,_that.category,_that.ho
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String coverImageUrl,  EventCategory category,  String hostId,  String hostName,  String hostPhotoUrl,  bool hostVerified,  String hostBio,  int hostEventsHosted,  double hostRating,  DateTime startTime,  int durationMinutes,  String venueName,  String venueAddress,  String neighbourhood,  int priceRupees,  int totalSpots,  int maleRsvpCount,  int femaleRsvpCount,  List<String> attendeeAvatarUrls,  String description,  EventGenderPolicy genderPolicy,  bool isGoing)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String coverImageUrl,  EventCategory category,  String hostId,  String hostName,  String hostPhotoUrl,  bool hostVerified,  String hostBio,  int hostEventsHosted,  double hostRating,  DateTime startTime,  int durationMinutes,  String venueName,  String venueAddress,  String neighbourhood,  int priceRupees,  int totalSpots,  int maleRsvpCount,  int femaleRsvpCount,  List<String> attendeeAvatarUrls,  String description,  EventGenderPolicy genderPolicy,  bool isGoing,  int? priceRupeesWomen,  int? priceRupeesMen)?  $default,) {final _that = this;
 switch (_that) {
 case _Event() when $default != null:
-return $default(_that.id,_that.title,_that.coverImageUrl,_that.category,_that.hostId,_that.hostName,_that.hostPhotoUrl,_that.hostVerified,_that.hostBio,_that.hostEventsHosted,_that.hostRating,_that.startTime,_that.durationMinutes,_that.venueName,_that.venueAddress,_that.neighbourhood,_that.priceRupees,_that.totalSpots,_that.maleRsvpCount,_that.femaleRsvpCount,_that.attendeeAvatarUrls,_that.description,_that.genderPolicy,_that.isGoing);case _:
+return $default(_that.id,_that.title,_that.coverImageUrl,_that.category,_that.hostId,_that.hostName,_that.hostPhotoUrl,_that.hostVerified,_that.hostBio,_that.hostEventsHosted,_that.hostRating,_that.startTime,_that.durationMinutes,_that.venueName,_that.venueAddress,_that.neighbourhood,_that.priceRupees,_that.totalSpots,_that.maleRsvpCount,_that.femaleRsvpCount,_that.attendeeAvatarUrls,_that.description,_that.genderPolicy,_that.isGoing,_that.priceRupeesWomen,_that.priceRupeesMen);case _:
   return null;
 
 }
@@ -230,7 +232,7 @@ return $default(_that.id,_that.title,_that.coverImageUrl,_that.category,_that.ho
 
 
 class _Event extends Event {
-  const _Event({required this.id, required this.title, required this.coverImageUrl, required this.category, required this.hostId, required this.hostName, required this.hostPhotoUrl, required this.hostVerified, required this.hostBio, required this.hostEventsHosted, required this.hostRating, required this.startTime, required this.durationMinutes, required this.venueName, required this.venueAddress, required this.neighbourhood, required this.priceRupees, required this.totalSpots, required this.maleRsvpCount, required this.femaleRsvpCount, required  List<String> attendeeAvatarUrls, required this.description, this.genderPolicy = EventGenderPolicy.everyone, this.isGoing = false}): _attendeeAvatarUrls = attendeeAvatarUrls,super._();
+  const _Event({required this.id, required this.title, required this.coverImageUrl, required this.category, required this.hostId, required this.hostName, required this.hostPhotoUrl, required this.hostVerified, required this.hostBio, required this.hostEventsHosted, required this.hostRating, required this.startTime, required this.durationMinutes, required this.venueName, required this.venueAddress, required this.neighbourhood, required this.priceRupees, required this.totalSpots, required this.maleRsvpCount, required this.femaleRsvpCount, required  List<String> attendeeAvatarUrls, required this.description, this.genderPolicy = EventGenderPolicy.everyone, this.isGoing = false, this.priceRupeesWomen, this.priceRupeesMen}): _attendeeAvatarUrls = attendeeAvatarUrls,super._();
   
 
 @override final  String id;
@@ -263,6 +265,8 @@ class _Event extends Event {
 @override final  String description;
 @override@JsonKey() final  EventGenderPolicy genderPolicy;
 @override@JsonKey() final  bool isGoing;
+@override final  int? priceRupeesWomen;
+@override final  int? priceRupeesMen;
 
 /// Create a copy of Event
 /// with the given fields replaced by the non-null parameter values.
@@ -274,16 +278,16 @@ _$EventCopyWith<_Event> get copyWith => __$EventCopyWithImpl<_Event>(this, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Event&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.coverImageUrl, coverImageUrl) || other.coverImageUrl == coverImageUrl)&&(identical(other.category, category) || other.category == category)&&(identical(other.hostId, hostId) || other.hostId == hostId)&&(identical(other.hostName, hostName) || other.hostName == hostName)&&(identical(other.hostPhotoUrl, hostPhotoUrl) || other.hostPhotoUrl == hostPhotoUrl)&&(identical(other.hostVerified, hostVerified) || other.hostVerified == hostVerified)&&(identical(other.hostBio, hostBio) || other.hostBio == hostBio)&&(identical(other.hostEventsHosted, hostEventsHosted) || other.hostEventsHosted == hostEventsHosted)&&(identical(other.hostRating, hostRating) || other.hostRating == hostRating)&&(identical(other.startTime, startTime) || other.startTime == startTime)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes)&&(identical(other.venueName, venueName) || other.venueName == venueName)&&(identical(other.venueAddress, venueAddress) || other.venueAddress == venueAddress)&&(identical(other.neighbourhood, neighbourhood) || other.neighbourhood == neighbourhood)&&(identical(other.priceRupees, priceRupees) || other.priceRupees == priceRupees)&&(identical(other.totalSpots, totalSpots) || other.totalSpots == totalSpots)&&(identical(other.maleRsvpCount, maleRsvpCount) || other.maleRsvpCount == maleRsvpCount)&&(identical(other.femaleRsvpCount, femaleRsvpCount) || other.femaleRsvpCount == femaleRsvpCount)&&const DeepCollectionEquality().equals(other._attendeeAvatarUrls, _attendeeAvatarUrls)&&(identical(other.description, description) || other.description == description)&&(identical(other.genderPolicy, genderPolicy) || other.genderPolicy == genderPolicy)&&(identical(other.isGoing, isGoing) || other.isGoing == isGoing));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Event&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.coverImageUrl, coverImageUrl) || other.coverImageUrl == coverImageUrl)&&(identical(other.category, category) || other.category == category)&&(identical(other.hostId, hostId) || other.hostId == hostId)&&(identical(other.hostName, hostName) || other.hostName == hostName)&&(identical(other.hostPhotoUrl, hostPhotoUrl) || other.hostPhotoUrl == hostPhotoUrl)&&(identical(other.hostVerified, hostVerified) || other.hostVerified == hostVerified)&&(identical(other.hostBio, hostBio) || other.hostBio == hostBio)&&(identical(other.hostEventsHosted, hostEventsHosted) || other.hostEventsHosted == hostEventsHosted)&&(identical(other.hostRating, hostRating) || other.hostRating == hostRating)&&(identical(other.startTime, startTime) || other.startTime == startTime)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes)&&(identical(other.venueName, venueName) || other.venueName == venueName)&&(identical(other.venueAddress, venueAddress) || other.venueAddress == venueAddress)&&(identical(other.neighbourhood, neighbourhood) || other.neighbourhood == neighbourhood)&&(identical(other.priceRupees, priceRupees) || other.priceRupees == priceRupees)&&(identical(other.totalSpots, totalSpots) || other.totalSpots == totalSpots)&&(identical(other.maleRsvpCount, maleRsvpCount) || other.maleRsvpCount == maleRsvpCount)&&(identical(other.femaleRsvpCount, femaleRsvpCount) || other.femaleRsvpCount == femaleRsvpCount)&&const DeepCollectionEquality().equals(other._attendeeAvatarUrls, _attendeeAvatarUrls)&&(identical(other.description, description) || other.description == description)&&(identical(other.genderPolicy, genderPolicy) || other.genderPolicy == genderPolicy)&&(identical(other.isGoing, isGoing) || other.isGoing == isGoing)&&(identical(other.priceRupeesWomen, priceRupeesWomen) || other.priceRupeesWomen == priceRupeesWomen)&&(identical(other.priceRupeesMen, priceRupeesMen) || other.priceRupeesMen == priceRupeesMen));
 }
 
 
 @override
-int get hashCode => Object.hashAll([runtimeType,id,title,coverImageUrl,category,hostId,hostName,hostPhotoUrl,hostVerified,hostBio,hostEventsHosted,hostRating,startTime,durationMinutes,venueName,venueAddress,neighbourhood,priceRupees,totalSpots,maleRsvpCount,femaleRsvpCount,const DeepCollectionEquality().hash(_attendeeAvatarUrls),description,genderPolicy,isGoing]);
+int get hashCode => Object.hashAll([runtimeType,id,title,coverImageUrl,category,hostId,hostName,hostPhotoUrl,hostVerified,hostBio,hostEventsHosted,hostRating,startTime,durationMinutes,venueName,venueAddress,neighbourhood,priceRupees,totalSpots,maleRsvpCount,femaleRsvpCount,const DeepCollectionEquality().hash(_attendeeAvatarUrls),description,genderPolicy,isGoing,priceRupeesWomen,priceRupeesMen]);
 
 @override
 String toString() {
-  return 'Event(id: $id, title: $title, coverImageUrl: $coverImageUrl, category: $category, hostId: $hostId, hostName: $hostName, hostPhotoUrl: $hostPhotoUrl, hostVerified: $hostVerified, hostBio: $hostBio, hostEventsHosted: $hostEventsHosted, hostRating: $hostRating, startTime: $startTime, durationMinutes: $durationMinutes, venueName: $venueName, venueAddress: $venueAddress, neighbourhood: $neighbourhood, priceRupees: $priceRupees, totalSpots: $totalSpots, maleRsvpCount: $maleRsvpCount, femaleRsvpCount: $femaleRsvpCount, attendeeAvatarUrls: $attendeeAvatarUrls, description: $description, genderPolicy: $genderPolicy, isGoing: $isGoing)';
+  return 'Event(id: $id, title: $title, coverImageUrl: $coverImageUrl, category: $category, hostId: $hostId, hostName: $hostName, hostPhotoUrl: $hostPhotoUrl, hostVerified: $hostVerified, hostBio: $hostBio, hostEventsHosted: $hostEventsHosted, hostRating: $hostRating, startTime: $startTime, durationMinutes: $durationMinutes, venueName: $venueName, venueAddress: $venueAddress, neighbourhood: $neighbourhood, priceRupees: $priceRupees, totalSpots: $totalSpots, maleRsvpCount: $maleRsvpCount, femaleRsvpCount: $femaleRsvpCount, attendeeAvatarUrls: $attendeeAvatarUrls, description: $description, genderPolicy: $genderPolicy, isGoing: $isGoing, priceRupeesWomen: $priceRupeesWomen, priceRupeesMen: $priceRupeesMen)';
 }
 
 
@@ -294,7 +298,7 @@ abstract mixin class _$EventCopyWith<$Res> implements $EventCopyWith<$Res> {
   factory _$EventCopyWith(_Event value, $Res Function(_Event) _then) = __$EventCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String title, String coverImageUrl, EventCategory category, String hostId, String hostName, String hostPhotoUrl, bool hostVerified, String hostBio, int hostEventsHosted, double hostRating, DateTime startTime, int durationMinutes, String venueName, String venueAddress, String neighbourhood, int priceRupees, int totalSpots, int maleRsvpCount, int femaleRsvpCount, List<String> attendeeAvatarUrls, String description, EventGenderPolicy genderPolicy, bool isGoing
+ String id, String title, String coverImageUrl, EventCategory category, String hostId, String hostName, String hostPhotoUrl, bool hostVerified, String hostBio, int hostEventsHosted, double hostRating, DateTime startTime, int durationMinutes, String venueName, String venueAddress, String neighbourhood, int priceRupees, int totalSpots, int maleRsvpCount, int femaleRsvpCount, List<String> attendeeAvatarUrls, String description, EventGenderPolicy genderPolicy, bool isGoing, int? priceRupeesWomen, int? priceRupeesMen
 });
 
 
@@ -311,7 +315,7 @@ class __$EventCopyWithImpl<$Res>
 
 /// Create a copy of Event
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? coverImageUrl = null,Object? category = null,Object? hostId = null,Object? hostName = null,Object? hostPhotoUrl = null,Object? hostVerified = null,Object? hostBio = null,Object? hostEventsHosted = null,Object? hostRating = null,Object? startTime = null,Object? durationMinutes = null,Object? venueName = null,Object? venueAddress = null,Object? neighbourhood = null,Object? priceRupees = null,Object? totalSpots = null,Object? maleRsvpCount = null,Object? femaleRsvpCount = null,Object? attendeeAvatarUrls = null,Object? description = null,Object? genderPolicy = null,Object? isGoing = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? coverImageUrl = null,Object? category = null,Object? hostId = null,Object? hostName = null,Object? hostPhotoUrl = null,Object? hostVerified = null,Object? hostBio = null,Object? hostEventsHosted = null,Object? hostRating = null,Object? startTime = null,Object? durationMinutes = null,Object? venueName = null,Object? venueAddress = null,Object? neighbourhood = null,Object? priceRupees = null,Object? totalSpots = null,Object? maleRsvpCount = null,Object? femaleRsvpCount = null,Object? attendeeAvatarUrls = null,Object? description = null,Object? genderPolicy = null,Object? isGoing = null,Object? priceRupeesWomen = freezed,Object? priceRupeesMen = freezed,}) {
   return _then(_Event(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -337,7 +341,9 @@ as int,attendeeAvatarUrls: null == attendeeAvatarUrls ? _self._attendeeAvatarUrl
 as List<String>,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String,genderPolicy: null == genderPolicy ? _self.genderPolicy : genderPolicy // ignore: cast_nullable_to_non_nullable
 as EventGenderPolicy,isGoing: null == isGoing ? _self.isGoing : isGoing // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,priceRupeesWomen: freezed == priceRupeesWomen ? _self.priceRupeesWomen : priceRupeesWomen // ignore: cast_nullable_to_non_nullable
+as int?,priceRupeesMen: freezed == priceRupeesMen ? _self.priceRupeesMen : priceRupeesMen // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 

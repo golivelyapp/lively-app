@@ -6,11 +6,19 @@ import '../../onboarding/models/onboarding_enums.dart';
 import '../repositories/profile_repository.dart';
 
 /// Coarse app-state driven by real Supabase Auth + the user's profile row:
+/// - loading: session exists but profile hasn't returned yet (cold start).
+///   The router keeps the user on the splash screen instead of guessing.
 /// - unauthenticated: no session → login
 /// - onboarding: authenticated but profile.review_status = 'draft'
 /// - awaitingReview: submitted/under_review/rejected
 /// - authenticated: approved — full app access
-enum AuthStatus { unauthenticated, onboarding, awaitingReview, authenticated }
+enum AuthStatus {
+  loading,
+  unauthenticated,
+  onboarding,
+  awaitingReview,
+  authenticated,
+}
 
 /// Streams every Supabase auth state change (sign-in / sign-out / refresh).
 final authStateChangesProvider = StreamProvider<AuthState>((ref) {
@@ -45,10 +53,12 @@ final authStateProvider = Provider<AuthStatus>((ref) {
 
   final profileAsync = ref.watch(currentProfileProvider);
   return profileAsync.when(
-    // While loading the profile we hold on the last-known status.
-    // Default onboarding is the safest "still gated" fallback.
-    loading: () => AuthStatus.onboarding,
-    error: (_, __) => AuthStatus.onboarding,
+    // Cold-start: we know there's a session but the profile row hasn't
+    // arrived yet. Report loading so the router keeps the user on the
+    // splash screen instead of routing them into onboarding intro every
+    // launch (which was the pre-fix behaviour).
+    loading: () => AuthStatus.loading,
+    error: (_, __) => AuthStatus.loading,
     data: (profile) {
       if (profile == null) return AuthStatus.onboarding;
       final String status = profile['review_status'] as String? ?? 'draft';

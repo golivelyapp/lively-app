@@ -24,9 +24,15 @@ class _ProfilePictureScreenState extends State<ProfilePictureScreen> {
   String? _photoPath;
 
   Future<void> _pickPhoto() async {
+    // Compress on-device before upload: image_picker downscales to fit
+    // within 1080×1080 (aspect preserved) and re-encodes JPEG at 85%.
+    // A 10 MB / 4000-px camera photo comes out ~150–250 KB after this,
+    // which cached_network_image can then downsample per display size.
     final XFile? file = await ImagePicker().pickImage(
       source: ImageSource.gallery,
       imageQuality: 85,
+      maxWidth: 1080,
+      maxHeight: 1080,
     );
     if (file != null) setState(() => _photoPath = file.path);
   }

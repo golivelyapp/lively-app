@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
@@ -85,7 +87,7 @@ class EventCard extends StatelessWidget {
                 Row(
                   children: <Widget>[
                     Text(
-                      event.isFree ? 'Free' : '₹${event.priceRupees}',
+                      event.priceLabel,
                       style: AppTextStyles.body.copyWith(
                         fontWeight: FontWeight.w700,
                         color: event.isFree ? AppColors.success : AppColors.textPrimary,
@@ -128,6 +130,15 @@ class _CoverImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (url.isEmpty) return const ColoredBox(color: AppColors.surface);
+    // Create-Event preview passes a local file path while the cover is
+    // still on-device; render it with Image.file so the preview isn't blank.
+    if (!url.startsWith('http')) {
+      return Image.file(
+        File(url),
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const ColoredBox(color: AppColors.surface),
+      );
+    }
     return CachedNetworkImage(
       imageUrl: url,
       fit: BoxFit.cover,

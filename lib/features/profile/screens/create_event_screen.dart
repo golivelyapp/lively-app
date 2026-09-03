@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -17,6 +19,15 @@ import '../../onboarding/providers/onboarding_draft_controller.dart';
 const List<String> _popularVenues = <String>[
   'Indiranagar', 'HSR Layout', 'Koramangala',
 ];
+
+/// 12-hour AM/PM formatter that ignores the device locale — same shape
+/// as the display formatters used across the app.
+String _format12h(TimeOfDay t) {
+  final int h = t.hour % 12 == 0 ? 12 : t.hour % 12;
+  final String m = t.minute.toString().padLeft(2, '0');
+  final String p = t.hour < 12 ? 'AM' : 'PM';
+  return '$h:$m $p';
+}
 
 class CreateEventScreen extends ConsumerStatefulWidget {
   const CreateEventScreen({super.key});
@@ -42,8 +53,12 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   double _totalSpots = 20;
   double _malePercent = 50;
 
-  bool _isFree = true;
-  final TextEditingController _price = TextEditingController();
+  // Per-gender pricing. "Free" toggles are the default so the user can
+  // publish a free event without typing anything.
+  bool _isFreeWomen = true;
+  bool _isFreeMen = true;
+  final TextEditingController _priceWomen = TextEditingController();
+  final TextEditingController _priceMen = TextEditingController();
 
   String? _coverPhotoPath;
 
@@ -53,48 +68,91 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     _description.dispose();
     _venueName.dispose();
     _venueAddress.dispose();
-    _price.dispose();
+    _priceWomen.dispose();
+    _priceMen.dispose();
     super.dispose();
+  }
+
+  int? _parsePrice(TextEditingController c) {
+    final String s = c.text.trim();
+    if (s.isEmpty) return null;
+    return int.tryParse(s);
+  }
+
+  bool _genderPriceOk(bool isFree, TextEditingController c) {
+    if (isFree) return true;
+    final int? v = _parsePrice(c);
+    return v != null && v > 0;
   }
 
   bool get _canContinue => switch (_step) {
     0 => _title.text.trim().isNotEmpty && _category != null,
-    1 => _venueName.text.trim().isNotEmpty,
-    3 => _isFree || _price.text.trim().isNotEmpty,
+    // Duration is validated on value>0, not on "user has interacted with
+    // the slider". The default of 120 minutes is already valid — don't
+    // gate Continue on the user touching it.
+    1 => _venueName.text.trim().isNotEmpty && _durationMinutes > 0,
+    // Pricing is complete when EACH gender has either a valid price>0
+    // or its Free toggle on. Re-evaluated on every price onChanged.
+    3 => _genderPriceOk(_isFreeWomen, _priceWomen) &&
+         _genderPriceOk(_isFreeMen, _priceMen),
     4 => _coverPhotoPath != null,
     _ => true,
   };
 
   DateTime get _startTime => DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute);
 
-  void _publish() {
-    final draft = ref.read(onboardingDraftProvider);
-    final Event event = Event(
-      id: 'evt-${DateTime.now().microsecondsSinceEpoch}',
-      title: _title.text.trim(),
-      coverImageUrl: _coverPhotoPath!,
-      category: _category!,
-      hostId: 'me',
-      hostName: draft.name ?? 'You',
-      hostPhotoUrl: draft.profilePhotoPath ?? '',
-      hostVerified: true,
-      hostBio: draft.bio ?? '',
-      hostEventsHosted: 0,
-      hostRating: 5.0,
-      startTime: _startTime,
-      durationMinutes: _durationMinutes,
-      venueName: _venueName.text.trim(),
-      venueAddress: _venueAddress.text.trim(),
-      neighbourhood: _venueAddress.text.trim().split(',').last.trim(),
-      priceRupees: _isFree ? 0 : int.tryParse(_price.text.trim()) ?? 0,
-      totalSpots: _totalSpots.round(),
-      maleRsvpCount: 0,
-      femaleRsvpCount: 0,
-      attendeeAvatarUrls: const <String>[],
-      description: _description.text.trim(),
+  bool _publishing = false;
+
+  Future<void> _publish() async {
+    if (_publishing) return;
+    final int priceWomen = _isFreeWomen ? 0 : (_parsePrice(_priceWomen) ?? 0);
+    final int priceMen = _isFreeMen ? 0 : (_parsePrice(_priceMen) ?? 0);
+    // Legacy single price kept for older readers — use the max so screens
+    // that show "one price" don't understate it.
+    final int legacyPrice = priceWomen > priceMen ? priceWomen : priceMen;
+
+    setState(() => _publishing = true);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: AppColors.black),
+      ),
     );
-    ref.read(eventsProvider.notifier).publish(event);
-    Navigator.of(context).popUntil((route) => route.isFirst);
+
+    try {
+      await ref.read(eventRepositoryProvider).createEvent(
+            title: _title.text.trim(),
+            description: _description.text.trim(),
+            category: _category!,
+            startTime: _startTime,
+            durationMinutes: _durationMinutes,
+            venueName: _venueName.text.trim(),
+            venueAddress: _venueAddress.text.trim(),
+            totalSpots: _totalSpots.round(),
+            priceRupees: legacyPrice,
+            priceRupeesWomen: priceWomen,
+            priceRupeesMen: priceMen,
+            coverImage: File(_coverPhotoPath!),
+          );
+      // Pull the fresh feed so the new event shows up on Home right away.
+      await ref.read(eventsProvider.notifier).refresh();
+      // Reset the Home category pill to "All" — otherwise a published
+      // event whose category doesn't match the user's current pill is
+      // filtered out on the feed and the host thinks it didn't save.
+      ref.read(homeFilterProvider.notifier).state = 'all';
+      ref.read(dateFilterProvider.notifier).state = DateFilter.anytime;
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop(); // dismiss loader
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop(); // dismiss loader
+      setState(() => _publishing = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not publish event: $e')),
+      );
+    }
   }
 
   @override
@@ -135,7 +193,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: GradientButton(
                 label: _step == _totalSteps - 1 ? 'Publish' : 'Continue',
-                onPressed: _canContinue
+                onPressed: (_canContinue && !_publishing)
                     ? () => _step == _totalSteps - 1 ? _publish() : setState(() => _step++)
                     : null,
               ),
@@ -148,7 +206,13 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
 
   Widget _buildStep() {
     return switch (_step) {
-      0 => _BasicsStep(title: _title, description: _description, category: _category, onCategory: (c) => setState(() => _category = c)),
+      0 => _BasicsStep(
+          title: _title,
+          description: _description,
+          category: _category,
+          onCategory: (c) => setState(() => _category = c),
+          onTextChanged: () => setState(() {}),
+        ),
       1 => _WhenWhereStep(
           date: _date,
           time: _time,
@@ -158,6 +222,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
           onPickDate: (d) => setState(() => _date = d),
           onPickTime: (t) => setState(() => _time = t),
           onDuration: (m) => setState(() => _durationMinutes = m),
+          onTextChanged: () => setState(() {}),
         ),
       2 => _CapacityStep(
           totalSpots: _totalSpots,
@@ -166,9 +231,14 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
           onMalePercent: (v) => setState(() => _malePercent = v),
         ),
       3 => _PricingStep(
-          isFree: _isFree,
-          price: _price,
-          onIsFree: (v) => setState(() => _isFree = v),
+          isFreeWomen: _isFreeWomen,
+          isFreeMen: _isFreeMen,
+          priceWomen: _priceWomen,
+          priceMen: _priceMen,
+          onIsFreeWomen: (v) => setState(() => _isFreeWomen = v),
+          onIsFreeMen: (v) => setState(() => _isFreeMen = v),
+          // Bug 6: revalidate on every keystroke, not just on toggle.
+          onPriceChanged: () => setState(() {}),
         ),
       4 => _PhotosStep(coverPhotoPath: _coverPhotoPath, onPicked: (p) => setState(() => _coverPhotoPath = p)),
       _ => _PreviewStep(event: _buildPreviewEvent()),
@@ -177,7 +247,13 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
 
   Event _buildPreviewEvent() {
     final draft = ref.read(onboardingDraftProvider);
-    final int male = ((_totalSpots * _malePercent) / 100).round();
+    // floor() → any leftover spot goes to women, matching the display rule.
+    final int male = ((_totalSpots * _malePercent) / 100).floor();
+    final int previewPriceWomen = _isFreeWomen ? 0 : (_parsePrice(_priceWomen) ?? 0);
+    final int previewPriceMen = _isFreeMen ? 0 : (_parsePrice(_priceMen) ?? 0);
+    final int previewLegacy = previewPriceWomen > previewPriceMen
+        ? previewPriceWomen
+        : previewPriceMen;
     return Event(
       id: 'preview',
       title: _title.text.trim().isEmpty ? 'Your event title' : _title.text.trim(),
@@ -195,7 +271,9 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       venueName: _venueName.text.trim(),
       venueAddress: _venueAddress.text.trim(),
       neighbourhood: _venueAddress.text.trim().split(',').last.trim(),
-      priceRupees: _isFree ? 0 : int.tryParse(_price.text.trim()) ?? 0,
+      priceRupees: previewLegacy,
+      priceRupeesWomen: previewPriceWomen,
+      priceRupeesMen: previewPriceMen,
       totalSpots: _totalSpots.round(),
       maleRsvpCount: male,
       femaleRsvpCount: _totalSpots.round() - male,
@@ -221,12 +299,14 @@ class _BasicsStep extends StatelessWidget {
     required this.description,
     required this.category,
     required this.onCategory,
+    required this.onTextChanged,
   });
 
   final TextEditingController title;
   final TextEditingController description;
   final EventCategory? category;
   final ValueChanged<EventCategory> onCategory;
+  final VoidCallback onTextChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -236,7 +316,11 @@ class _BasicsStep extends StatelessWidget {
         const _StepTitle('Basics'),
         const Text('Event title', style: AppTextStyles.bodySecondary),
         const SizedBox(height: AppSpacing.xs),
-        TextField(controller: title, decoration: const InputDecoration(hintText: 'Art Jam & Wine')),
+        TextField(
+          controller: title,
+          onChanged: (_) => onTextChanged(),
+          decoration: const InputDecoration(hintText: 'Art Jam & Wine'),
+        ),
         const SizedBox(height: AppSpacing.md),
         const Text('Category', style: AppTextStyles.bodySecondary),
         const SizedBox(height: AppSpacing.xs),
@@ -271,6 +355,7 @@ class _WhenWhereStep extends StatelessWidget {
     required this.onPickDate,
     required this.onPickTime,
     required this.onDuration,
+    required this.onTextChanged,
   });
 
   final DateTime date;
@@ -281,6 +366,7 @@ class _WhenWhereStep extends StatelessWidget {
   final ValueChanged<DateTime> onPickDate;
   final ValueChanged<TimeOfDay> onPickTime;
   final ValueChanged<int> onDuration;
+  final VoidCallback onTextChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -308,10 +394,18 @@ class _WhenWhereStep extends StatelessWidget {
             Expanded(
               child: OutlinedButton(
                 onPressed: () async {
-                  final picked = await showTimePicker(context: context, initialTime: time);
+                  // Force 12-hour AM/PM regardless of the device locale.
+                  final picked = await showTimePicker(
+                    context: context,
+                    initialTime: time,
+                    builder: (ctx, child) => MediaQuery(
+                      data: MediaQuery.of(ctx).copyWith(alwaysUse24HourFormat: false),
+                      child: child!,
+                    ),
+                  );
                   if (picked != null) onPickTime(picked);
                 },
-                child: Text(time.format(context)),
+                child: Text(_format12h(time)),
               ),
             ),
           ],
@@ -329,11 +423,19 @@ class _WhenWhereStep extends StatelessWidget {
         const SizedBox(height: AppSpacing.md),
         const Text('Venue name', style: AppTextStyles.bodySecondary),
         const SizedBox(height: AppSpacing.xs),
-        TextField(controller: venueName, decoration: const InputDecoration(hintText: 'Studio Canvas')),
+        TextField(
+          controller: venueName,
+          onChanged: (_) => onTextChanged(),
+          decoration: const InputDecoration(hintText: 'Studio Canvas'),
+        ),
         const SizedBox(height: AppSpacing.md),
         const Text('Address', style: AppTextStyles.bodySecondary),
         const SizedBox(height: AppSpacing.xs),
-        TextField(controller: venueAddress, decoration: const InputDecoration(hintText: 'Street, area')),
+        TextField(
+          controller: venueAddress,
+          onChanged: (_) => onTextChanged(),
+          decoration: const InputDecoration(hintText: 'Street, area'),
+        ),
         const SizedBox(height: AppSpacing.sm),
         Wrap(
           spacing: AppSpacing.xs,
@@ -385,10 +487,17 @@ class _CapacityStep extends StatelessWidget {
         const SizedBox(height: AppSpacing.sm),
         GenderBalanceBar(maleRatio: malePercent / 100, height: 10),
         const SizedBox(height: AppSpacing.xs),
-        Text(
-          '${malePercent.round()}% male · ${(100 - malePercent).round()}% female',
-          style: AppTextStyles.caption,
-        ),
+        Builder(builder: (_) {
+          // Convert ratio → headcount. If the split leaves an odd extra
+          // spot (e.g. 50/50 of 21), it goes to women.
+          final int total = totalSpots.round();
+          final int male = (total * malePercent / 100).floor();
+          final int female = total - male;
+          return Text(
+            '$female women · $male men',
+            style: AppTextStyles.caption,
+          );
+        }),
         Slider(
           value: malePercent,
           min: 0,
@@ -402,11 +511,23 @@ class _CapacityStep extends StatelessWidget {
 }
 
 class _PricingStep extends StatelessWidget {
-  const _PricingStep({required this.isFree, required this.price, required this.onIsFree});
+  const _PricingStep({
+    required this.isFreeWomen,
+    required this.isFreeMen,
+    required this.priceWomen,
+    required this.priceMen,
+    required this.onIsFreeWomen,
+    required this.onIsFreeMen,
+    required this.onPriceChanged,
+  });
 
-  final bool isFree;
-  final TextEditingController price;
-  final ValueChanged<bool> onIsFree;
+  final bool isFreeWomen;
+  final bool isFreeMen;
+  final TextEditingController priceWomen;
+  final TextEditingController priceMen;
+  final ValueChanged<bool> onIsFreeWomen;
+  final ValueChanged<bool> onIsFreeMen;
+  final VoidCallback onPriceChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -414,6 +535,53 @@ class _PricingStep extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         const _StepTitle('Pricing'),
+        _GenderPriceRow(
+          label: 'For women',
+          isFree: isFreeWomen,
+          price: priceWomen,
+          onIsFree: onIsFreeWomen,
+          onPriceChanged: onPriceChanged,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _GenderPriceRow(
+          label: 'For men',
+          isFree: isFreeMen,
+          price: priceMen,
+          onIsFree: onIsFreeMen,
+          onPriceChanged: onPriceChanged,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        const Text(
+          'Money goes straight to you — Lively takes no cut right now.',
+          style: AppTextStyles.caption,
+        ),
+      ],
+    );
+  }
+}
+
+class _GenderPriceRow extends StatelessWidget {
+  const _GenderPriceRow({
+    required this.label,
+    required this.isFree,
+    required this.price,
+    required this.onIsFree,
+    required this.onPriceChanged,
+  });
+
+  final String label;
+  final bool isFree;
+  final TextEditingController price;
+  final ValueChanged<bool> onIsFree;
+  final VoidCallback onPriceChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(label, style: AppTextStyles.bodySecondary),
+        const SizedBox(height: AppSpacing.xs),
         Row(
           children: <Widget>[
             PillToggle(label: 'Free', selected: isFree, onTap: () => onIsFree(true)),
@@ -422,18 +590,12 @@ class _PricingStep extends StatelessWidget {
           ],
         ),
         if (!isFree) ...<Widget>[
-          const SizedBox(height: AppSpacing.md),
-          const Text('Amount (₹)', style: AppTextStyles.bodySecondary),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: AppSpacing.sm),
           TextField(
             controller: price,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(hintText: '299'),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          const Text(
-            'Money goes straight to you — Lively takes no cut right now.',
-            style: AppTextStyles.caption,
+            onChanged: (_) => onPriceChanged(),
+            decoration: const InputDecoration(hintText: 'Amount in ₹'),
           ),
         ],
       ],

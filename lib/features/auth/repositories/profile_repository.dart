@@ -138,6 +138,25 @@ class ProfileRepository {
       } catch (_) {}
       throw Exception('Attachment record failed: ${e.message}');
     }
+
+    // Denormalise the avatar URL onto profiles.avatar_url so every display
+    // site (You tab, event card host row, event detail host card, chat
+    // list preview) can render it without joining the attachments table.
+    // Without this, the URL was previously discarded after upload.
+    if (purpose == 'avatar' &&
+        ownerType == 'profile' &&
+        ownerId == _uid) {
+      try {
+        await _c
+            .from('profiles')
+            .update(<String, Object?>{'avatar_url': url})
+            .eq('id', _uid);
+      } on PostgrestException catch (_) {
+        // Non-fatal: attachment already exists, URL just isn't on the
+        // profile row. Don't roll back the whole upload for this.
+      }
+    }
+
     return url;
   }
 
@@ -158,6 +177,16 @@ class ProfileRepository {
     await _c
         .from('profiles')
         .update({'review_status': 'submitted'})
+        .eq('id', _uid);
+  }
+
+  /// Persists a host verification transition to `profiles.host_status`.
+  /// [status] must be one of the DB enum values: 'none' | 'applied' |
+  /// 'under_review' | 'approved' | 'rejected' | 'suspended'.
+  Future<void> setHostStatus(String status) async {
+    await _c
+        .from('profiles')
+        .update({'host_status': status})
         .eq('id', _uid);
   }
 }

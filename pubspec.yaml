@@ -30,6 +30,7 @@ dev_dependencies:
   freezed: ^4.0.0
   json_serializable: ^6.8.0
   flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.1
 
 flutter:
   uses-material-design: true
@@ -38,12 +39,29 @@ flutter:
 
 flutter_launcher_icons:
   android: true
+  # iOS is off until the Runner project's AppIcon.appiconset is set up
+  # (Android alpha only for now — see CLAUDE.md § Platform).
   ios: false
-  image_path: "app_icon.png"
+  # 2026-09-02: switched to app_iconv2.png (updated Lively mark).
+  image_path: "app_iconv2.png"
   min_sdk_android: 21
-  # Adaptive icon: the app_icon PNG already has a white ground behind the
-  # mark, so we use the same source for the foreground and a matching
-  # white for the background. The launcher clips it into a circle/square
-  # per device style and the mark stays centered inside the safe zone.
+  # Adaptive icon: source PNG has a white ground behind the mark, so the
+  # foreground and background both use white. The launcher clips it into
+  # a circle/square per device style and the mark stays centered inside
+  # the safe zone (~66% of the 108×108 dp canvas).
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "app_icon.png"
+  adaptive_icon_foreground: "app_iconv2.png"
+
+flutter_native_splash:
+  # OS-level launch screen — plays before Flutter draws its first frame.
+  # `app_iconv2_splash.png` is a padded 2400×2400 canvas with the 1254×1254
+  # source logo scaled to 900px and centered on white, so the mark sits
+  # well inside the 66% safe zone Android 12+ applies via its circular
+  # splash mask. Without the padding the logo edges get clipped.
+  color: "#FFFFFF"
+  image: "app_iconv2_splash.png"
+  android: true
+  ios: false
+  android_12:
+    color: "#FFFFFF"
+    image: "app_iconv2_splash.png"

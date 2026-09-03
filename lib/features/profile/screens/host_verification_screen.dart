@@ -6,6 +6,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/gradient_button.dart';
+import '../../auth/providers/auth_state_provider.dart';
+import '../../auth/repositories/profile_repository.dart';
 import '../models/host_verification_status.dart';
 import '../providers/host_verification_provider.dart';
 
@@ -34,10 +36,33 @@ class _HostVerificationScreenState extends ConsumerState<HostVerificationScreen>
       imageQuality: 85,
     );
     if (file == null) return;
-    ref.read(hostVerificationStatusProvider.notifier).state = HostVerificationStatus.underReview;
-    Future.delayed(const Duration(seconds: 4), () {
+
+    final ProfileRepository repo = ref.read(profileRepositoryProvider);
+
+    // Persist the transition to Supabase so it survives an app kill.
+    try {
+      await repo.setHostStatus('under_review');
+      ref.read(profileRefreshTriggerProvider.notifier).state++;
+    } catch (e) {
       if (!mounted) return;
-      ref.read(hostVerificationStatusProvider.notifier).state = HostVerificationStatus.approved;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not submit verification: $e')),
+      );
+      return;
+    }
+
+    Future.delayed(const Duration(seconds: 4), () async {
+      if (!mounted) return;
+      try {
+        await repo.setHostStatus('approved');
+        ref.read(profileRefreshTriggerProvider.notifier).state++;
+      } catch (_) {
+        // If the approval write fails the user stays in review; router
+        // will pick up the real state on next fetch. Silent is fine — the
+        // pending screen already communicates the state.
+        return;
+      }
+      if (!mounted) return;
       Navigator.of(context).pop();
     });
   }

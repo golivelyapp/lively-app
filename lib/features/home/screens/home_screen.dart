@@ -16,11 +16,43 @@ import '../providers/event_providers.dart';
 import '../widgets/event_card.dart';
 import '../widgets/filter_chip_row.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Re-fetch each time Home mounts — the Notifier survives across
+    // tab switches inside the shell, so its state can grow stale.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(eventsProvider.notifier).refresh();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Foreground → re-fetch so events published elsewhere show up.
+    if (state == AppLifecycleState.resumed) {
+      ref.read(eventsProvider.notifier).refresh();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final List<Event> events = ref.watch(filteredEventsProvider);
     final String filter = ref.watch(homeFilterProvider);
     final bool isHost = ref.watch(isVerifiedHostProvider);
@@ -66,10 +98,8 @@ class HomeScreen extends ConsumerWidget {
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.magenta,
-                onRefresh: () async {
-                  await Future<void>.delayed(const Duration(milliseconds: 600));
-                  // In prod, this would refetch the feed.
-                },
+                onRefresh: () =>
+                    ref.read(eventsProvider.notifier).refresh(),
                 child: events.isEmpty && upcomingRsvps.isEmpty
                     ? _EmptyState()
                     : ListView(

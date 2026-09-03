@@ -61,6 +61,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       final bool onOnboarding = location.startsWith('/onboarding');
       final bool onAwaiting = location == RoutePaths.awaitingReview;
 
+      // While the profile is still being fetched (cold start with a
+      // persisted session), keep the user on the splash screen. We
+      // don't know yet whether they're new, awaiting review, or
+      // approved, and guessing sends returning users through onboarding
+      // every launch.
+      if (status == AuthStatus.loading) {
+        return onSplash ? null : RoutePaths.splash;
+      }
+
       // Splash is a tap-to-continue gate ONLY for a fresh install with
       // no session yet. Once the user has any status, splash must
       // forward them to their proper destination — otherwise a deep
@@ -68,6 +77,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       // the user gets stuck.
       if (onSplash) {
         return switch (status) {
+          AuthStatus.loading => null,
           AuthStatus.unauthenticated => null,
           AuthStatus.onboarding => RoutePaths.onboardingIntro,
           AuthStatus.awaitingReview => RoutePaths.awaitingReview,

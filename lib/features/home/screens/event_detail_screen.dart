@@ -282,7 +282,8 @@ class _SpotsPriceBanner extends StatelessWidget {
     final String spots = event.isFull
         ? 'Sold out'
         : '${event.spotsRemaining} spots left';
-    final String price = event.isFree ? 'Free' : '₹${event.priceRupees}';
+    // Summary banner — no viewer context here, use the intelligent label.
+    final String price = event.priceLabel;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -581,7 +582,8 @@ class _BottomActionBar extends ConsumerWidget {
         );
       };
     } else {
-      label = event.isFree ? 'RSVP · Free' : 'RSVP · ₹${event.priceRupees}';
+      // Bug 5: RSVP CTA shows the viewer's gender-specific price.
+      label = 'RSVP · ${event.priceLabelFor(myGender)}';
       onPressed = () {
         ref.read(eventsProvider.notifier).toggleRsvp(event.id);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -628,7 +630,9 @@ class _BottomActionBar extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        event.isFree ? 'Free entry' : '₹${event.priceRupees}',
+                        event.isFreeFor(myGender)
+                            ? 'Free entry'
+                            : '₹${event.priceFor(myGender)}',
                         style: AppTextStyles.bodySecondary,
                       ),
                     ],
